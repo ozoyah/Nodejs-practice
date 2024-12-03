@@ -1,37 +1,36 @@
-import http from "http";
-import fs from "fs/promises";
-import url from "url";
-import path from "path";
-const PORT = 2000;
+import { createServer } from "http";
+const PORT = process.env.PORT;
 
-// Get path
-const __filename = url.fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const users = [
+  { id: 1, name: "timothy" },
+  { id: 2, name: "victor" },
+  { id: 3, name: "temi" },
+];
 
-//create server with node
-
-const server = http.createServer(async (req, res) => {
-  try {
-    //check if GET request
-    if (req.method === "GET") {
-      let filePath;
-      if (req.url === "/") {
-        filePath = path.join(__dirname, "public", "index.html");
-      } else if (req.url === "/contact") {
-        filePath = path.join(__dirname, "public", "contact.html");
-      } else {
-        throw new Error("Not Found");
-      }
-      const data = await fs.readFile(filePath);
-      res.setHeader("Content-Type", "text/html");
-      res.write(data);
-      res.end();
+// create a simple restapi
+const server = createServer(async (req, res) => {
+  //get the entire users
+  if (req.url === "/api/users" && req.method === "GET") {
+    res.setHeader("Content-Type", "application/json");
+    res.write(JSON.stringify(users));
+    res.end();
+    //get the user by id
+  } else if (req.url.match(/\/api\/users\/([0-9]+)/) && req.method === "GET") {
+    const id = req.url.split("/")[3];
+    const user = users.find((user) => user.id === parseInt(id));
+    res.setHeader("Content-Type", "application/json");
+    if (user) {
+      res.write(JSON.stringify(user));
     } else {
-      throw new Error("Method not allowed");
+      res.statusCode = 404;
+      res.write(JSON.stringify({ message: "User not found" }));
     }
-  } catch (error) {
-    res.writeHead(404, { "Content-Type": "text/html" });
-    res.end("<h1>Not Found  </h1>");
+    res.end();
+  } else {
+    res.setHeader("Content-Type", "application/json");
+    res.statusCode = 404;
+    res.write(JSON.stringify({ message: "Route not found" }));
+    res.end();
   }
 });
 
